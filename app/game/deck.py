@@ -1,70 +1,49 @@
 import random
 
-class Card(object):
+class Card:
     def __init__(self, value, suit):
-        self.value = value
-        self.suit = suit
+        self.value = value  # 0-12 (Two to Ace)
+        self.suit = suit    # 0-3 (Diamonds, Clubs, Hearts, Spades)
         self.showing = True
 
     def __repr__(self):
-        value_name = ""
-        suit_name = ""
-        if self.showing:
-            if self.value == 0:
-                value_name = "Two"
-            if self.value == 1:
-                value_name = "Three"
-            if self.value == 2:
-                value_name = "Four"
-            if self.value == 3:
-                value_name = "Five"
-            if self.value == 4:
-                value_name = "Six"
-            if self.value == 5:
-                value_name = "Seven"
-            if self.value == 6:
-                value_name = "Eight"
-            if self.value == 7:
-                value_name = "Nine"
-            if self.value == 8:
-                value_name = "Ten"
-            if self.value == 9:
-                value_name = "Jack"
-            if self.value == 10:
-                value_name = "Queen"
-            if self.value == 11:
-                value_name = "King"
-            if self.value == 12:
-                value_name = "Ace"
-            if self.suit == 0:
-                suit_name = "Diamonds"
-            if self.suit == 1:
-                suit_name = "Clubs"
-            if self.suit == 2:
-                suit_name = "Hearts"
-            if self.suit == 3:
-                suit_name = "Spades"
-            return value_name + " of " + suit_name
-        else:
+        if not self.showing:
             return "[CARD]"
+
+        value_names = [
+            "Two", "Three", "Four", "Five", "Six", "Seven",
+            "Eight", "Nine", "Ten", "Jack", "Queen", "King", "Ace"
+        ]
+        suit_names = ["Diamonds", "Clubs", "Hearts", "Spades"]
+
+        return f"{value_names[self.value]} of {suit_names[self.suit]}"
 
 class StandardDeck(list):
     def __init__(self):
         super().__init__()
-        suits = list(range(4))
-        values = list(range(13))
-        [[self.append(Card(i, j)) for j in suits] for i in values]
+        self.reset()
 
-    def __repr__(self):
-        return f"Standard deck of cards\n{len(self)} cards remaining"
+    def reset(self):
+        """Reset the deck to a full 52-card deck and shuffle it."""
+        self.clear()
+        suits = range(4)
+        values = range(13)
+        [[self.append(Card(value, suit)) for suit in suits] for value in values]
+        self.shuffle()
 
     def shuffle(self):
         random.shuffle(self)
-        print("\n\n--deck shuffled--")
+        print("\n-- deck shuffled --")
 
-    def deal(self, location, times=1):
-        for i in range(times):
-            location.cards.append(self.pop(0))
+    def draw(self):
+        if not self:
+            raise ValueError("Cannot draw from empty deck")
+        return self.pop(0)
 
-        def burn(self):
-            self.pop(0)
+    def draw_multiple(self, count):
+        if len(self) < count:
+            raise ValueError("Not enough cards to draw")
+        return [self.draw() for _ in range(count)]
+
+    def __repr__(self):
+        return f"Standard deck of cards\n{len(self)} cards remaining"

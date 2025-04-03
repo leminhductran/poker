@@ -1,11 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Socket.IO Test</title>
-  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <title>Multiplayer Poker</title>
+  <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
 </head>
 <body>
-  <h1>Poker Test Page</h1>
-  <p>Open the DevTools Console (F12) to interact.</p>
+  <h1>Multiplayer Poker</h1>
+
+  <input type="text" id="name" placeholder="Your Name" />
+  <input type="text" id="room" placeholder="Room Code" />
+  <br><br>
+  <button onclick="createRoom()">Create Room</button>
+  <button onclick="joinRoom()">Join Room</button>
+  <button onclick="startHand()">Start Hand</button>
+
+  <pre id="output"></pre>
+
+  <script>
+    const socket = io();
+    const output = document.getElementById("output");
+
+    function createRoom() {
+      const name = document.getElementById("name").value;
+      const room = document.getElementById("room").value;
+      socket.emit("create_room", { name, room });
+    }
+
+    function joinRoom() {
+      const name = document.getElementById("name").value;
+      const room = document.getElementById("room").value;
+      socket.emit("join_room", { name, room });
+    }
+
+    function startHand() {
+      const room = document.getElementById("room").value;
+      socket.emit("start_hand", { room });
+    }
+
+    socket.on("room_joined", data => {
+      output.innerText += "\n" + data.message;
+    });
+
+    socket.on("hand_result", data => {
+      output.innerText += `\n\n-- New Hand --\nPot: ${data.pot}\nCommunity Cards: ${data.community_cards.join(', ')}`;
+      data.players.forEach(p => {
+        output.innerText += `\n${p.name}: ${p.hand.join(', ')} | ${p.hand_rank} | Chips: ${p.chips}`;
+      });
+      output.innerText += `\nWinner(s): ${data.winners.join(', ')}`;
+    });
+
+    socket.on("error", data => {
+      output.innerText += `\nError: ${data.message}`;
+    });
+  </script>
 </body>
 </html>
