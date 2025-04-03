@@ -18,7 +18,7 @@ class Card:
 
         return f"{value_names[self.value]} of {suit_names[self.suit]}"
 
-class StandardDeck(list):
+class Deck(list):
     def __init__(self):
         super().__init__()
         self.reset()
@@ -44,6 +44,12 @@ class StandardDeck(list):
         if len(self) < count:
             raise ValueError("Not enough cards to draw")
         return [self.draw() for _ in range(count)]
+
+    def burn(self):
+        """Burn the top card (remove it from the deck without using)."""
+        if not self:
+            raise ValueError("Cannot burn from an empty deck")
+        self.pop(0)
 
     def __repr__(self):
         return f"Standard deck of cards\n{len(self)} cards remaining"

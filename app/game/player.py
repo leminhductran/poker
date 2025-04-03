@@ -77,3 +77,20 @@ class Player:
     def __repr__(self):
         return (f"Player({self.name}, chips={self.chips}, current_bet={self.current_bet}, "
                 f"folded={self.folded}, all_in={self.all_in})")
+
+    def is_active(self):
+        """Returns True if the player is not folded or all-in."""
+        return not self.folded and not self.all_in
+
+    def to_dict(self, include_hand=False):
+        """Return a dictionary representation of the player (for emitting via SocketIO)."""
+        data = {
+            'name': self.name,
+            'chips': self.chips,
+            'folded': self.folded,
+            'all_in': self.all_in,
+            'current_bet': self.current_bet
+        }
+        if include_hand:
+            data['hand'] = [str(card) for card in self.hand]
+        return data

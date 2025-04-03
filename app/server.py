@@ -1,9 +1,11 @@
-# server.py
+import os
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from game.game import Game
+from game.player import Player
 
-app = Flask(__name__)
+# Explicitly set the templates folder to point one level up
+app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), '..', 'templates'))
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
@@ -26,7 +28,7 @@ def on_create(data):
     if room not in games:
         games[room] = Game([name])
     else:
-        games[room].players.append(name)
+        games[room].players.append(Player(name))
 
     emit('room_joined', {'message': f"{name} created and joined room {room}"}, room=room)
     broadcast_player_list(room)
@@ -38,7 +40,7 @@ def on_join(data):
     join_room(room)
 
     if room in games:
-        games[room].players.append(name)
+        games[room].players.append(Player(name))
         emit('room_joined', {'message': f"{name} joined room {room}"}, room=room)
         broadcast_player_list(room)
     else:
@@ -59,15 +61,7 @@ def start_hand(data):
         'community_cards': [],
         'pot': game.pot,
         'current_turn': current,
-        'players': [
-            {
-                'name': p.name,
-                'hand': [str(card) for card in p.hand],
-                'chips': p.chips,
-                'folded': p.folded
-            }
-            for p in game.players
-        ]
+        'players': [p.to_dict(include_hand=True) for p in game.players]
     }, room=room)
 
 @socketio.on('player_action')
@@ -84,12 +78,26 @@ def on_action(data):
         player.fold()
     elif action == 'call':
         to_call = game.current_bet - player.current_bet
-        game.place_bet(player, to_call)
+        if player.chips < to_call:
+            game.place_bet(player, player.chips)  # Bet all chips if less than required call
+        else:
+            game.place_bet(player, to_call)
     elif action == 'raise':
-        game.place_bet(player, amount)
+        if amount <= player.chips:  # Prevent raising more than chips available
+            game.place_bet(player, amount)
+        else:
+            emit('error', {'message': 'Insufficient chips to raise!'})
+            return
 
-    game.rotate_to_next_player()
-    current = game.get_current_player().name
+    if not game.all_players_have_called():
+        game.rotate_to_next_player()
+        current = game.get_current_player().name
+        socketio.emit('game_update', {
+            'community_cards': [str(card) for card in game.community_cards],
+            'pot': game.pot,
+            'current_turn': current,
+            'players': [p.to_dict() for p in game.players]
+        }, room=room)
 
     if game.all_players_have_called():
         game.advance_stage()
@@ -99,13 +107,8 @@ def on_action(data):
                 'community_cards': [str(card) for card in game.community_cards],
                 'pot': game.pot,
                 'players': [
-                    {
-                        'name': p.name,
-                        'hand': [str(card) for card in p.hand],
-                        'chips': p.chips,
-                        'folded': p.folded,
-                        'hand_rank': p.best_hand_name
-                    } for p in game.players
+                    dict(**p.to_dict(include_hand=True), hand_rank=p.best_hand_name)
+                    for p in game.players
                 ],
                 'winners': [w.name for w in winners]
             }, room=room)
@@ -116,12 +119,8 @@ def on_action(data):
         'pot': game.pot,
         'current_turn': current,
         'players': [
-            {
-                'name': p.name,
-                'chips': p.chips,
-                'folded': p.folded,
-                'current_bet': p.current_bet
-            } for p in game.players
+            {'name': p.name, 'chips': p.chips, 'folded': p.folded, 'current_bet': p.current_bet}
+            for p in game.players
         ]
     }, room=room)
 

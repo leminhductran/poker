@@ -52,15 +52,15 @@ class Game:
             player.has_acted = False
 
         if self.stage == 'pre-flop':
-            self.deck.draw()  # burn one
+            self.deck.burn()
             self.community_cards += self.deck.draw_multiple(3)
             self.stage = 'flop'
         elif self.stage == 'flop':
-            self.deck.draw()
+            self.deck.burn()
             self.community_cards.append(self.deck.draw())
             self.stage = 'turn'
         elif self.stage == 'turn':
-            self.deck.draw()
+            self.deck.burn()
             self.community_cards.append(self.deck.draw())
             self.stage = 'river'
         elif self.stage == 'river':
